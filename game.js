@@ -9,7 +9,8 @@ const pause = document.querySelector('#pause');
 const stage = document.querySelector('#stage');
 const powers = document.querySelector('#powers');
 const touchControls = document.querySelector('#touch-controls');
-const touchButtons = [...touchControls.querySelectorAll('button')];
+const touchButtons = touchControls ? [...touchControls.querySelectorAll('button')] : [];
+const touchToggle = document.querySelector('#touch-toggle');
 const title = document.querySelector('#title');
 const description = document.querySelector('#description');
 const W = 480;
@@ -211,8 +212,9 @@ function updatePowers(style) {
     if (code==='Space') {
       button.textContent=style===heroes[6]?'Rise':'Jump';
     } else if (code==='KeyJ'||code==='KeyK'||code==='KeyL') {
-      const label=style[code.at(-1).toLowerCase()];
-      button.setAttribute('aria-label',code.at(-1)+' · '+label);
+      const key=code.slice(-1);
+      const label=style[key.toLowerCase()];
+      button.setAttribute('aria-label',key+' · '+label);
     }
   }
   powers.innerHTML = '<kbd>J</kbd> ' + style.j + ' <kbd>K</kbd> ' + style.k + ' <kbd>L</kbd> ' + style.l;
@@ -275,7 +277,7 @@ function startLevel(index) {
   state = 'play';
   stage.textContent = 'STAGE 0' + (index+1) + '  /  ' + level.name;
   menu.hidden = true;
-  touchControls.hidden = false;
+  updateTouchControls();
   pause.hidden = false;
   pause.textContent = 'PAUSE';
   updatePowers(hero);
@@ -287,7 +289,7 @@ function showMenu(heading='CHOOSE YOUR HERO', button='START MISSION') {
   title.textContent = heading;
   start.textContent = button;
   menu.hidden = false;
-  touchControls.hidden = true;
+  updateTouchControls();
   pause.hidden = true;
   stage.textContent = 'HERO SELECT';
 }
@@ -302,6 +304,25 @@ pause.onclick = () => {
   if (state==='play'||state==='paused') togglePause();
   else advanceGame();
 };
+const coarsePointer = window.matchMedia('(any-pointer: coarse)');
+let touchPreference;
+function updateTouchControls() {
+  if (!touchControls || !touchToggle) return;
+  const enabled=touchPreference ?? (navigator.maxTouchPoints>0 || coarsePointer.matches);
+  document.body.classList.toggle('touch-enabled',enabled);
+  document.body.classList.toggle('touch-playing',enabled && state==='play');
+  touchToggle.setAttribute('aria-pressed',enabled);
+  touchControls.hidden=!enabled || state!=='play';
+  if (touchControls.hidden) clearTouch();
+}
+if (touchToggle) {
+  touchToggle.onclick=()=>{
+    touchPreference=touchToggle.getAttribute('aria-pressed')!=='true';
+    updateTouchControls();
+  };
+  coarsePointer.addEventListener?.('change',updateTouchControls);
+  updateTouchControls();
+}
 function clearTouch() {
   for (const button of touchPointers.values()) button.classList.remove('is-held');
   touchPointers.clear();
@@ -314,13 +335,13 @@ function releaseTouch(event) {
 }
 for (const button of touchButtons) {
   button.addEventListener('pointerdown', event => {
-    if (state!=='play'||event.button!==0) return;
+    if (state!=='play'||(event.pointerType==='mouse' && event.button!==0)) return;
     event.preventDefault();
     usingTouch=true;
     const code=button.dataset.key;
     if (!down(code)) pressed.add(code);
     touchPointers.set(event.pointerId,button);
-    button.setPointerCapture(event.pointerId);
+    button.setPointerCapture?.(event.pointerId);
     button.classList.add('is-held');
   });
   for (const eventName of ['pointerup','pointercancel','lostpointercapture']) {
@@ -333,18 +354,18 @@ function togglePause() {
     state = 'paused';
     clearTouch();
     pressed.clear();
-    touchControls.hidden = true;
+    updateTouchControls();
     pause.textContent = 'RESUME';
   } else if (state === 'paused') {
     state = 'play';
-    touchControls.hidden = false;
+    updateTouchControls();
     pause.textContent = 'PAUSE';
   }
 }
 const controls = new Set(['KeyW','KeyA','KeyS','KeyD','Space','KeyJ','KeyK','KeyL','Escape','Enter','KeyM']);
 window.addEventListener('keydown', event => {
   if (!controls.has(event.code)) return;
-  if ((event.code==='Space'||event.code==='Enter') && event.target instanceof HTMLButtonElement && state==='menu') return;
+  if ((event.code==='Space'||event.code==='Enter') && (event.target===touchToggle || (state==='menu' && event.target instanceof HTMLButtonElement))) return;
   if (event.code==='Space' || state!=='menu') event.preventDefault();
   if (!keys.has(event.code)) {
     pressed.add(event.code);
@@ -707,7 +728,7 @@ function updateShots(dt) {
 }
 function finish(result) {
   state=result;
-  touchControls.hidden=true;
+  updateTouchControls();
   pause.textContent={lose:'RETRY',clear:'CONTINUE',win:'HERO SELECT'}[result];
   clearTouch();
   keys.clear();
