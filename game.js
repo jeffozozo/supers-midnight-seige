@@ -24,7 +24,7 @@ const heroes = [
   { name:'Batman', main:'#5e6e94', dark:'#25243d', trim:gold, face:skin, speed:115, j:'Batarang', k:'Grapple', l:'Cape guard', note:'Throw batarangs and hold K near cyan anchors to cross gaps.' },
   { name:'Captain America', main:'#3685da', dark:'#233d82', trim:'#fff5dc', face:skin, speed:112, j:'Shield throw', k:'Shield bash', l:'Shield block', note:'The shield returns after a throw. Hold L to block every hit while carrying it.' },
   { name:'Wonder Woman', main:'#e34e58', dark:'#294d9b', trim:gold, face:skin, speed:121, j:'Lasso', k:'Amazon strike', l:'Deflect', note:'Tie up enemies with the lasso and hold L to reflect gunfire.' },
-  { name:'Black Widow', main:'#484665', dark:'#272139', trim:'#f26c53', face:skin, speed:142, j:'Combo punch', k:'High split kick', l:'Sliding kick', note:'Kick high to hit on both sides, or slide forward to knock down every enemy in your path.' },
+  { name:'Black Widow', main:'#484665', dark:'#272139', trim:'#f26c53', face:skin, speed:142, j:'Combo punch', k:'Forward flip', l:'Sliding kick', note:'Flip forward over enemies, or slide through them to knock them down.' },
   { name:'Scarlet Witch', main:'#ec4784', dark:'#7c2255', trim:'#ff99ca', face:skin, speed:120, j:'Hex bolt', k:'Chaos wave', l:'Hex ward', note:'Fly with WASD, rise with Space, and blast enemies with chaos magic.' },
 ];
 
@@ -35,6 +35,7 @@ const levels = [
 ];
 const stairs = [[560,800],[1170,1390],[1690,1930]];
 const hpMax = 100;
+const flipDuration = .62;
 let selected = 0;
 let state = 'menu';
 let levelIndex = 0;
@@ -76,7 +77,7 @@ function widowSprite(p, stride, pose) {
   const goldBuckle='#ffc571';
   const red='#ff5f4b';
   const slide=pose==='slide';
-  const split=pose==='split';
+  const flip=pose==='flip';
   const punch=pose==='attack';
   const hips=slide?[-3,-7]:[0,-13];
   const head=slide?[-9,-19]:[1,-34];
@@ -92,7 +93,7 @@ function widowSprite(p, stride, pose) {
     }
   }
   const legs=slide ? [[[2,-7],[12,-4],[23,-4]], [[-4,-7],[-10,-4],[-16,-4]]]
-    : split ? [[[1,-13],[11,-20],[21,-29]], [[-2,-13],[-12,-10],[-21,-6]]]
+    : flip ? [[[1,-13],[8,-16],[9,-9]], [[-2,-13],[4,-14],[4,-7]]]
     : [[[2,-13],[4-stride,-7],[4-stride,-3]], [[-3,-13],[-5+stride,-7],[-5+stride,-3]]];
   legs.forEach((leg,index)=>{
     limb(leg,8,ink);
@@ -106,9 +107,9 @@ function widowSprite(p, stride, pose) {
   limb([shoulders,hips],9,suit);
   p(light,shoulders[0]-4,shoulders[1]-3,8,3);
   p(shadow,hips[0]-5,hips[1]-2,11,3);
-  p(goldBuckle,hips[0]-1,hips[1]-2,3,3);
+  p('#a5a7b0',hips[0]-1,hips[1]-2,3,3);
 
-  const glove=slide?[-16,-5]:split?[9,-23]:punch?[18,-21]:[9,-15];
+  const glove=slide?[-16,-5]:flip?[9,-14]:punch?[18,-21]:[9,-15];
   limb([shoulders,glove],6,ink);
   limb([shoulders,glove],4,suit);
   p(goldBuckle,glove[0]-2,glove[1]-2,4,3);
@@ -124,9 +125,6 @@ function widowSprite(p, stride, pose) {
   p('#da805f',hx-1,hy+8,6,2);
   p(ink,hx+3,hy+4,2,1);
 
-  if (split) {
-    p('#ff795b',21,-36,5,2); p('#ffbe71',25,-33,3,3); p('#fff3c4',27,-29,3,2);
-  }
   if (slide) {
     p('#ff9465',-27,-3,9,1); p('#ffe2a1',-22,-1,9,1); p('#bc5a62',-30,-6,7,1);
   }
@@ -241,7 +239,7 @@ function startLevel(index) {
   levelIndex = index;
   level = levels[index];
   hero = heroes[selected];
-  player = {x:65,y:floorAt(65),vx:0,vy:0,hp:hpMax,dir:1,ground:true,ifr:0,action:0,j:0,k:0,dodge:0,boost:0,slide:0,slideCooldown:0,split:0};
+  player = {x:65,y:floorAt(65),vx:0,vy:0,hp:hpMax,dir:1,ground:true,ifr:0,action:0,j:0,k:0,dodge:0,boost:0,slide:0,slideCooldown:0,flip:0};
   camera = 0;
   cameraY = 0;
   checkpoint = 65;
@@ -385,9 +383,9 @@ function actions(dt, move) {
   player.ifr=Math.max(0,player.ifr-dt);
   player.slide=Math.max(0,player.slide-dt);
   player.slideCooldown=Math.max(0,player.slideCooldown-dt);
-  player.split=Math.max(0,player.split-dt);
+  player.flip=Math.max(0,player.flip-dt);
   if (selected===5) {
-    if (player.slide || player.split) return;
+    if (player.slide || player.flip) return;
     if (hit('KeyL') && player.ground && !player.slideCooldown) {
       player.slide=.39;
       player.slideCooldown=.68;
@@ -395,12 +393,12 @@ function actions(dt, move) {
       tone(155,.18,'triangle',75);
       return;
     }
-    if (hit('KeyK') && !player.k) {
-      player.k=.65;
-      player.split=.3;
-      melee(49,38,'knock',true);
-      burst(player.x+player.dir*22,player.y-29,hero.trim,10);
-      tone(310,.15,'triangle',105);
+    if (hit('KeyK') && !player.k && player.ground) {
+      player.k=.8;
+      player.flip=flipDuration;
+      player.vy=-235;
+      player.ground=false;
+      tone(225,.15,'triangle',410);
       return;
     }
   }
@@ -423,7 +421,7 @@ function actions(dt, move) {
     }
     if (selected===0 || selected===5) { burst(player.x+player.dir*20,player.y-18,hero.trim,4); tone(160,.07); }
   }
-  if (hit('KeyK') && !player.k && selected!==1 && selected!==2) {
+  if (hit('KeyK') && !player.k && selected!==1 && selected!==2 && selected!==5) {
     player.k=.65;
     player.action=.25;
     switch(selected) {
@@ -439,7 +437,7 @@ function actions(dt, move) {
 
 function movePlayer(dt, gate) {
   const move=Number(down('KeyD'))-Number(down('KeyA'));
-  if (move && !player.slide) player.dir=move;
+  if (move && !player.slide && !player.flip) player.dir=move;
   actions(dt,move);
   const oldX=player.x;
   const oldY=player.y;
@@ -472,6 +470,7 @@ function movePlayer(dt, gate) {
     const speed=hero.speed*(defense() && !player.dodge?.58:1);
     const desired=player.boost ? 365*player.dir : move*(player.ground || selected===6 ? speed : Math.max(speed, 193)*(selected===5?1.31:1));
     if (player.slide) player.vx=330*player.dir;
+    else if (player.flip) player.vx=220*player.dir;
     else if (!player.dodge) player.vx+=(desired-player.vx)*Math.min(1,dt*(player.ground?15:5));
     if (selected===6) {
       const climb=Number(down('KeyS'))-Number(down('KeyW')||down('Space'));
@@ -505,7 +504,7 @@ function movePlayer(dt, gate) {
     player.y=clamp(player.y,ceiling,lowest);
   } else if (player.y>=floor && !swing && player.vy>=0) {
     const canClimb=levelIndex!==2 || player.ground || oldY<=floor+14 || floor===floorAt(oldX);
-    if (canClimb) { player.y=floor; player.vy=0; player.ground=true; }
+    if (canClimb) { player.y=floor; player.vy=0; player.ground=true; player.flip=0; }
   } else if (!swing) player.ground=false;
   if (player.slide) {
     if (!player.ground) player.slide=0;
@@ -532,6 +531,7 @@ function movePlayer(dt, gate) {
     player.vy=0;
     player.ground=true;
     player.ifr=1.2;
+    player.flip=0;
     swing=null;
     announce('BACK TO CHECKPOINT');
   }
@@ -880,8 +880,17 @@ function render() {
     for(let i=0;i<6;i++) rect(ctx,hue+(i%2?'88':'bb'),x-player.dir*(7+i*4),y-4+hash(i*19+Math.floor(elapsed*25))*12,3,2);
   }
   if (!player.ifr || Math.floor(player.ifr*16)%2===0) {
-    const pose=player.slide?'slide':player.split?'split':selected===3&&shieldOut?'unarmed':player.action?'attack':'';
-    sprite(ctx,hero,x,y,player.dir,player.ground?elapsed*Math.abs(player.vx)*.19:1,1,pose);
+    if (player.flip) {
+      const rotation=(1-player.flip/flipDuration)*Math.PI*2*player.dir;
+      ctx.save();
+      ctx.translate(x,y-20);
+      ctx.rotate(rotation);
+      sprite(ctx,hero,0,20,player.dir,0,1,'flip');
+      ctx.restore();
+    } else {
+      const pose=player.slide?'slide':selected===3&&shieldOut?'unarmed':player.action?'attack':'';
+      sprite(ctx,hero,x,y,player.dir,player.ground?elapsed*Math.abs(player.vx)*.19:1,1,pose);
+    }
   }
   if (defense() && defense()!=='dodge') {
     const bx=x+player.dir*14;
