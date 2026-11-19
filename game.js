@@ -47,6 +47,7 @@ let shots;
 let sparks;
 let squads;
 let camera;
+let cameraY;
 let elapsed = 0;
 let notice = '';
 let noticeTime = 0;
@@ -174,6 +175,7 @@ function startLevel(index) {
   hero = heroes[selected];
   player = {x:65,y:floorAt(65),vx:0,vy:0,hp:hpMax,dir:1,ground:true,ifr:0,action:0,j:0,k:0,dodge:0,boost:0};
   camera = 0;
+  cameraY = 0;
   checkpoint = 65;
   mobs = [];
   shots = [];
@@ -410,7 +412,8 @@ function movePlayer(dt, gate) {
   const floor=floorAt(player.x);
   if (selected===6) {
     const lowest=Number.isFinite(floor)?floor-13:218;
-    player.y=clamp(player.y,42,lowest);
+    const ceiling=levelIndex===2?Math.min(42,floor-150):42;
+    player.y=clamp(player.y,ceiling,lowest);
   } else if (player.y>=floor && !swing && player.vy>=0) {
     const canClimb=levelIndex!==2 || player.ground || oldY<=floor+14 || floor===floorAt(oldX);
     if (canClimb) { player.y=floor; player.vy=0; player.ground=true; }
@@ -576,7 +579,12 @@ function update(dt) {
   }
   sparks=sparks.filter(particle=>particle.life>0);
   if (boss.active && boss.hp<=0 && noticeTime<1.35) finish(levelIndex===2?'win':'clear');
-  camera+=(clamp(player.x-150,0,level.length-W)-camera)*Math.min(1,dt*8);
+  const follow=Math.min(1,dt*8);
+  camera+=(clamp(player.x-150,0,level.length-W)-camera)*follow;
+  if (levelIndex===2) {
+    const targetY=Math.min(0,floorAt(player.x)-222,player.y-96);
+    cameraY+=(targetY-cameraY)*follow;
+  }
 }
 
 function text(label,x,y,color='#fff1f9',size=10,align='left') {
@@ -717,8 +725,17 @@ function render() {
     skyline(levels[0],0,(performance.now()/90)%3000);
     return;
   }
-  const scroll=Math.round(camera+(shake?random(-2,2):0));
+  let viewX=camera;
+  if (levelIndex===2 && boss.active && Math.abs(player.x-boss.x)<W-80) {
+    // Keep both fighters inside the viewport as the boss enters the arena.
+    viewX=clamp(viewX,Math.max(player.x,boss.x)-W+36,Math.min(player.x,boss.x)-36);
+  }
+  const scroll=Math.round(viewX+(shake?random(-2,2):0));
   skyline(level,levelIndex,scroll);
+  // Translate world objects together and leave the HUD in screen coordinates.
+  const viewY=Math.round(Math.min(cameraY,levelIndex===2?player.y-76:0));
+  ctx.save();
+  ctx.translate(0,-viewY);
   foreground(scroll);
   const group=squads.find(item=>item.active&&!item.done);
   if (group) {
@@ -769,6 +786,7 @@ function render() {
     const bx=x+player.dir*14;
     for(let i=0;i<5;i++) rect(ctx,i%2?hero.trim:'#fff',bx+player.dir*(2-Math.abs(i-2)),y-31+i*5,2,3);
   }
+  ctx.restore();
   rect(ctx,'#140e24e8',0,0,W,32);
   text(hero.name.toUpperCase(),12,12,gold,9);
   bar(12,18,106,6,player.hp,hpMax,'#f34e83');
