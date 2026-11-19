@@ -347,7 +347,12 @@ for (const button of touchButtons) {
   for (const eventName of ['pointerup','pointercancel','lostpointercapture']) {
     button.addEventListener(eventName,releaseTouch);
   }
-  button.addEventListener('contextmenu', event=>event.preventDefault());
+}
+const gameSurface = document.querySelector('main');
+for (const eventName of ['contextmenu','selectstart','dragstart']) {
+  gameSurface.addEventListener(eventName,event=>{
+    if (document.body.classList.contains('touch-playing')) event.preventDefault();
+  });
 }
 function togglePause() {
   if (state === 'play') {
