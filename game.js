@@ -8,12 +8,16 @@ const start = document.querySelector('#start');
 const pause = document.querySelector('#pause');
 const stage = document.querySelector('#stage');
 const powers = document.querySelector('#powers');
+const touchControls = document.querySelector('#touch-controls');
+const touchButtons = [...touchControls.querySelectorAll('button')];
 const title = document.querySelector('#title');
 const description = document.querySelector('#description');
 const W = 480;
 const H = 270;
 const keys = new Set();
 const pressed = new Set();
+const touchPointers = new Map();
+let usingTouch = false;
 const ink = '#130d24';
 const skin = '#f7b87e';
 const gold = '#ffe376';
@@ -66,7 +70,13 @@ const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const between = (x, a, b) => x >= a && x <= b;
 const random = (min, max) => min + Math.random() * (max - min);
 const hash = n => ((Math.imul(n + 91, 1103515245) >>> 17) % 1000) / 1000;
-const down = code => keys.has(code);
+function down(code) {
+  if (keys.has(code)) return true;
+  for (const button of touchPointers.values()) {
+    if (button.dataset.key===code) return true;
+  }
+  return false;
+}
 const hit = code => pressed.has(code);
 const rect = (g, color, x, y, w, h) => { g.fillStyle = color; g.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
 
@@ -196,6 +206,15 @@ function select(index) {
   updatePowers(heroes[index]);
 }
 function updatePowers(style) {
+  for (const button of touchButtons) {
+    const code=button.dataset.key;
+    if (code==='Space') {
+      button.textContent=style===heroes[6]?'Rise':'Jump';
+    } else if (code==='KeyJ'||code==='KeyK'||code==='KeyL') {
+      const label=style[code.at(-1).toLowerCase()];
+      button.setAttribute('aria-label',code.at(-1)+' · '+label);
+    }
+  }
   powers.innerHTML = '<kbd>J</kbd> ' + style.j + ' <kbd>K</kbd> ' + style.k + ' <kbd>L</kbd> ' + style.l;
 }
 heroes.forEach((style, i) => {
@@ -256,6 +275,7 @@ function startLevel(index) {
   state = 'play';
   stage.textContent = 'STAGE 0' + (index+1) + '  /  ' + level.name;
   menu.hidden = true;
+  touchControls.hidden = false;
   pause.hidden = false;
   pause.textContent = 'PAUSE';
   updatePowers(hero);
@@ -267,17 +287,57 @@ function showMenu(heading='CHOOSE YOUR HERO', button='START MISSION') {
   title.textContent = heading;
   start.textContent = button;
   menu.hidden = false;
+  touchControls.hidden = true;
   pause.hidden = true;
   stage.textContent = 'HERO SELECT';
 }
 start.onclick = () => { unlockAudio(); startLevel(0); };
-pause.onclick = () => togglePause();
+function advanceGame() {
+  if (state==='menu') start.click();
+  else if (state==='clear') startLevel(levelIndex+1);
+  else if (state==='lose') startLevel(levelIndex);
+  else if (state==='win') showMenu();
+}
+pause.onclick = () => {
+  if (state==='play'||state==='paused') togglePause();
+  else advanceGame();
+};
+function clearTouch() {
+  for (const button of touchPointers.values()) button.classList.remove('is-held');
+  touchPointers.clear();
+}
+function releaseTouch(event) {
+  const button=touchPointers.get(event.pointerId);
+  if (!button) return;
+  touchPointers.delete(event.pointerId);
+  if (![...touchPointers.values()].includes(button)) button.classList.remove('is-held');
+}
+for (const button of touchButtons) {
+  button.addEventListener('pointerdown', event => {
+    if (state!=='play'||event.button!==0) return;
+    event.preventDefault();
+    usingTouch=true;
+    const code=button.dataset.key;
+    if (!down(code)) pressed.add(code);
+    touchPointers.set(event.pointerId,button);
+    button.setPointerCapture(event.pointerId);
+    button.classList.add('is-held');
+  });
+  for (const eventName of ['pointerup','pointercancel','lostpointercapture']) {
+    button.addEventListener(eventName,releaseTouch);
+  }
+  button.addEventListener('contextmenu', event=>event.preventDefault());
+}
 function togglePause() {
   if (state === 'play') {
     state = 'paused';
+    clearTouch();
+    pressed.clear();
+    touchControls.hidden = true;
     pause.textContent = 'RESUME';
   } else if (state === 'paused') {
     state = 'play';
+    touchControls.hidden = false;
     pause.textContent = 'PAUSE';
   }
 }
@@ -290,17 +350,20 @@ window.addEventListener('keydown', event => {
     pressed.add(event.code);
     if (event.code==='Escape') togglePause();
     if (event.code==='KeyM') soundOn=!soundOn;
-    if (event.code==='Enter') {
-      if (state==='menu') start.click();
-      else if (state==='clear') startLevel(levelIndex+1);
-      else if (state==='lose') startLevel(levelIndex);
-      else if (state==='win') showMenu();
-    }
+    if (event.code==='Enter') advanceGame();
+    if (event.code==='KeyW'||event.code==='KeyS'||event.code==='Space') usingTouch=false;
   }
   keys.add(event.code);
 });
 window.addEventListener('keyup', event => keys.delete(event.code));
-window.addEventListener('blur', () => { keys.clear(); pressed.clear(); if (state==='play') togglePause(); });
+function suspendInput() {
+  keys.clear();
+  pressed.clear();
+  clearTouch();
+  if (state==='play') togglePause();
+}
+window.addEventListener('blur',suspendInput);
+document.addEventListener('visibilitychange',()=>{ if (document.hidden) suspendInput(); });
 function unlockAudio() {
   const Audio = window.AudioContext || window.webkitAudioContext;
   if (!audio && Audio) audio=new Audio();
@@ -407,7 +470,7 @@ function actions(dt, move) {
     player.vx=(move||player.dir)*220;
     player.k=Math.max(player.k,.32);
   }
-  if (down('KeyJ') && !player.j && !(selected===3 && shieldOut)) {
+  if ((down('KeyJ') || hit('KeyJ')) && !player.j && !(selected===3 && shieldOut)) {
     player.j=.27;
     player.action=.18;
     switch(selected) {
@@ -473,7 +536,8 @@ function movePlayer(dt, gate) {
     else if (player.flip) player.vx=220*player.dir;
     else if (!player.dodge) player.vx+=(desired-player.vx)*Math.min(1,dt*(player.ground?15:5));
     if (selected===6) {
-      const climb=Number(down('KeyS'))-Number(down('KeyW')||down('Space'));
+      const rising=down('KeyW')||down('Space');
+      const climb=Number(down('KeyS')||(usingTouch&&!rising))-Number(rising);
       player.vy+=(climb*124-player.vy)*Math.min(1,dt*12);
       player.ground=false;
     } else {
@@ -643,7 +707,9 @@ function updateShots(dt) {
 }
 function finish(result) {
   state=result;
-  pause.hidden=true;
+  touchControls.hidden=true;
+  pause.textContent={lose:'RETRY',clear:'CONTINUE',win:'HERO SELECT'}[result];
+  clearTouch();
   keys.clear();
   if (result==='clear'||result==='win') tone(510,.45,'triangle',920);
 }
@@ -914,9 +980,9 @@ function render() {
   if (state==='play') return;
   const overlays = {
     paused:['PAUSED','Escape or Resume to continue'],
-    lose:['MISSION FAILED','Enter to retry this stage'],
-    clear:['STAGE CLEAR','Enter to continue'],
-    win:['CITY SAVED','Enter to return to hero select'],
+    lose:['MISSION FAILED','Retry this stage'],
+    clear:['STAGE CLEAR','Continue to the next stage'],
+    win:['CITY SAVED','Return to hero select'],
   };
   const [heading,prompt]=overlays[state];
   rect(ctx,'#160d25d9',0,32,W,H-32);
