@@ -1,7 +1,10 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Supers / Midnight Siege</title><link rel="stylesheet" href="style.css?v=touch-3"><script src="game.js?v=touch-3" defer></script></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#0e0b1a"><meta name="apple-mobile-web-app-capable" content="yes"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon-192.png"><title>Supers / Midnight Siege</title><link rel="stylesheet" href="style.css?v=touch-4"><script src="game.js?v=touch-4" defer></script></head>
 <body><main>
-<header><div class="brand">SUPERS<span> / MIDNIGHT SIEGE</span></div><div id="stage">HERO SELECT</div><button type="button" id="touch-toggle" aria-pressed="false">TOUCH CONTROLS</button></header>
+<header><div class="brand">SUPERS<span> / MIDNIGHT SIEGE</span></div><div id="stage">HERO SELECT</div><div class="display-controls">
+  <button type="button" id="touch-toggle" aria-pressed="false">TOUCH CONTROLS</button>
+  <button type="button" id="fullscreen" hidden>FULLSCREEN</button>
+</div></header>
 <div class="game-deck">
 <div class="screen-slot">
 <div class="cabinet">
@@ -23,4 +26,9 @@
 </div>
 </div>
 <footer><div class="keyboard-help"><kbd>A</kbd> <kbd>D</kbd> Move <kbd>W</kbd> <kbd>S</kbd> Stairs / Flight <kbd>Space</kbd> Jump</div><div id="powers"></div><button id="pause" hidden>PAUSE</button></footer>
+<dialog id="fullscreen-help" aria-labelledby="fullscreen-title">
+  <h2 id="fullscreen-title">Play without browser tabs</h2>
+  <p>Open the browser’s Share or menu and choose <strong>Add to Home Screen</strong> or <strong>Install app</strong>. Turn on <strong>Open as Web App</strong> if it appears. Then launch Supers from the new icon.</p>
+  <form method="dialog"><button>GOT IT</button></form>
+</dialog>
 </main></body></html>

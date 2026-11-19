@@ -11,6 +11,8 @@ const powers = document.querySelector('#powers');
 const touchControls = document.querySelector('#touch-controls');
 const touchButtons = touchControls ? [...touchControls.querySelectorAll('button')] : [];
 const touchToggle = document.querySelector('#touch-toggle');
+const fullscreenButton = document.querySelector('#fullscreen');
+const fullscreenHelp = document.querySelector('#fullscreen-help');
 const title = document.querySelector('#title');
 const description = document.querySelector('#description');
 const W = 480;
@@ -312,6 +314,7 @@ function updateTouchControls() {
   document.body.classList.toggle('touch-enabled',enabled);
   document.body.classList.toggle('touch-playing',enabled && state==='play');
   touchToggle.setAttribute('aria-pressed',enabled);
+  updateFullscreenButton();
   touchControls.hidden=!enabled || state!=='play';
   if (touchControls.hidden) clearTouch();
 }
@@ -348,12 +351,47 @@ for (const button of touchButtons) {
     button.addEventListener(eventName,releaseTouch);
   }
 }
-const gameSurface = document.querySelector('main');
-for (const eventName of ['contextmenu','selectstart','dragstart']) {
-  gameSurface.addEventListener(eventName,event=>{
-    if (document.body.classList.contains('touch-playing')) event.preventDefault();
+function updateFullscreenButton() {
+  if (!fullscreenButton) return;
+  const installed=navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+  fullscreenButton.hidden=Boolean(installed && !document.fullscreenElement);
+  fullscreenButton.textContent=document.fullscreenElement?'EXIT FULLSCREEN':'FULLSCREEN';
+}
+function showFullscreenHelp() {
+  if (state==='play') togglePause();
+  fullscreenHelp.showModal();
+}
+if (fullscreenButton && fullscreenHelp) {
+  fullscreenButton.onclick=async ()=>{
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else if (document.fullscreenEnabled) await document.documentElement.requestFullscreen();
+      else showFullscreenHelp();
+    } catch {
+      showFullscreenHelp();
+    }
+  };
+  document.addEventListener('fullscreenchange',()=>{
+    clearTouch();
+    pressed.clear();
+    updateFullscreenButton();
   });
 }
+window.matchMedia('(orientation: portrait)').addEventListener?.('change',()=>{
+  clearTouch();
+  pressed.clear();
+});
+
+const gameSurface = document.querySelector('main');
+for (const eventName of ['contextmenu','selectstart','dragstart','dblclick','gesturestart']) {
+  gameSurface.addEventListener(eventName,event=>{
+    if (document.body.classList.contains('touch-playing')) event.preventDefault();
+  }, {passive:false});
+}
+// The deck's buttons use pointer events. Cancel touch-generated browser actions such as double-tap zoom.
+document.querySelector('.game-deck')?.addEventListener('touchend',event=>{
+  if (document.body.classList.contains('touch-playing') && event.cancelable) event.preventDefault();
+}, {passive:false});
 function togglePause() {
   if (state === 'play') {
     state = 'paused';
@@ -369,8 +407,8 @@ function togglePause() {
 }
 const controls = new Set(['KeyW','KeyA','KeyS','KeyD','Space','KeyJ','KeyK','KeyL','Escape','Enter','KeyM']);
 window.addEventListener('keydown', event => {
-  if (!controls.has(event.code)) return;
-  if ((event.code==='Space'||event.code==='Enter') && (event.target===touchToggle || (state==='menu' && event.target instanceof HTMLButtonElement))) return;
+  if (!controls.has(event.code)||fullscreenHelp?.open) return;
+  if ((event.code==='Space'||event.code==='Enter') && (event.target===touchToggle || event.target===fullscreenButton || (state==='menu' && event.target instanceof HTMLButtonElement))) return;
   if (event.code==='Space' || state!=='menu') event.preventDefault();
   if (!keys.has(event.code)) {
     pressed.add(event.code);
