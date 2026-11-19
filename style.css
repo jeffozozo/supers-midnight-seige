@@ -1,0 +1,14 @@
+:root{color-scheme:dark;font-family:ui-monospace,Menlo,Consolas,monospace;background:#0e0b1a;color:#fbecff;--gold:#ffe376;--purple:#aaa0c8}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 42%,#332049,#100c1c 74%)}
+main{width:min(1120px,96vw);padding:16px 0}header,footer{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 0;font-size:.875rem;color:var(--purple)}
+.brand{font-size:1.25rem;font-weight:1000;color:var(--gold)}.brand span{font-size:.85rem;color:#f4adff}#stage{color:#81eaf4;font-weight:bold}
+.cabinet{position:relative;border:3px solid #72558d;box-shadow:0 0 0 5px #1d142b,0 18px 45px #0008;background:#10091c}
+canvas{display:block;width:100%;height:auto;image-rendering:pixelated}#menu{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:12px;background:linear-gradient(#180d26e0,#251336df);text-align:center}
+[hidden]{display:none!important}.kicker{font-weight:bold;color:#ff7ed8;font-size:clamp(12px,1.5vw,17px);letter-spacing:.22em;margin:0}
+h1{font-size:clamp(19px,4.6vw,54px);line-height:1;margin:.25em 0 .45em;color:var(--gold);text-shadow:3px 4px #a12d75}
+#roster{display:flex;flex-wrap:wrap;justify-content:center;gap:5px;width:100%}
+button{font:inherit;cursor:pointer;color:inherit;background:#261938;border:2px solid #755995;padding:6px 9px}button:hover,button:focus-visible{border-color:#8bf5ff}button:focus-visible{outline:2px solid white;outline-offset:2px}
+.hero{width:calc((100% - 30px)/7);font-size:clamp(9px,1.25vw,15px);padding:4px 1px;line-height:1.12;font-weight:bold}.hero canvas{width:clamp(23px,7vw,82px);max-width:100%;margin:auto}.hero[aria-pressed=true]{background:#48315e;color:var(--gold);border-color:var(--gold)}
+#description{min-height:2.4em;margin:.7em 0 .3em;font-size:clamp(10px,1.35vw,16px);max-width:46ch}#start{color:#1a1029;background:var(--gold);border-color:#fff3b5;font-weight:1000;box-shadow:0 3px #c58153;font-size:clamp(11px,1.55vw,17px)}
+kbd{font:inherit;color:#fff2be;border:1px solid #5d486f;padding:1px 4px;border-radius:3px}footer div{line-height:1.8}
+@media(max-width:520px){.cabinet:has(#menu:not([hidden])){min-height:245px}#menu{padding:6px}footer{font-size:12px}}
