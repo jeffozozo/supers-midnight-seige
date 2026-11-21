@@ -11,6 +11,7 @@ const powers = document.querySelector('#powers');
 const touchControls = document.querySelector('#touch-controls');
 const touchButtons = touchControls ? [...touchControls.querySelectorAll('button')] : [];
 const touchToggle = document.querySelector('#touch-toggle');
+const movementStick = document.querySelector('#movement-stick');
 const fullscreenButton = document.querySelector('#fullscreen');
 const fullscreenHelp = document.querySelector('#fullscreen-help');
 const title = document.querySelector('#title');
@@ -20,6 +21,8 @@ const H = 270;
 const keys = new Set();
 const pressed = new Set();
 const touchPointers = new Map();
+let stickPointer = null;
+let stickKey = '';
 let usingTouch = false;
 const ink = '#130d24';
 const skin = '#f7b87e';
@@ -74,7 +77,7 @@ const between = (x, a, b) => x >= a && x <= b;
 const random = (min, max) => min + Math.random() * (max - min);
 const hash = n => ((Math.imul(n + 91, 1103515245) >>> 17) % 1000) / 1000;
 function down(code) {
-  if (keys.has(code)) return true;
+  if (keys.has(code)||stickKey===code) return true;
   for (const button of touchPointers.values()) {
     if (button.dataset.key===code) return true;
   }
@@ -329,6 +332,7 @@ if (touchToggle) {
 function clearTouch() {
   for (const button of touchPointers.values()) button.classList.remove('is-held');
   touchPointers.clear();
+  resetStick();
 }
 function releaseTouch(event) {
   const button=touchPointers.get(event.pointerId);
@@ -349,6 +353,39 @@ for (const button of touchButtons) {
   });
   for (const eventName of ['pointerup','pointercancel','lostpointercapture']) {
     button.addEventListener(eventName,releaseTouch);
+  }
+}
+function resetStick() {
+  stickPointer=null;
+  stickKey='';
+  if (movementStick) {
+    movementStick.classList.remove('is-held');
+    movementStick.style.removeProperty('--stick-x');
+  }
+}
+function moveStick(event) {
+  if (event.pointerId!==stickPointer) return;
+  const {left,width}=movementStick.getBoundingClientRect();
+  const offset=event.clientX-(left+width/2);
+  const travel=width/2-19;
+  stickKey=offset<-7?'KeyA':offset>7?'KeyD':'';
+  movementStick.style.setProperty('--stick-x',clamp(offset,-travel,travel)+'px');
+}
+if (movementStick) {
+  movementStick.addEventListener('pointerdown',event=>{
+    if (state!=='play'||stickPointer!==null||(event.pointerType==='mouse'&&event.button!==0)) return;
+    event.preventDefault();
+    usingTouch=true;
+    stickPointer=event.pointerId;
+    movementStick.setPointerCapture(event.pointerId);
+    movementStick.classList.add('is-held');
+    moveStick(event);
+  });
+  movementStick.addEventListener('pointermove',moveStick);
+  for (const eventName of ['pointerup','pointercancel','lostpointercapture']) {
+    movementStick.addEventListener(eventName,event=>{
+      if (event.pointerId===stickPointer) resetStick();
+    });
   }
 }
 function updateFullscreenButton() {

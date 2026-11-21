@@ -73,7 +73,39 @@ kbd{font:inherit;color:#fff2be;border:1px solid #5d486f;padding:1px 4px;border-r
   border-width:2px;
   box-shadow:none;
 }
-.touch-playing .movement-pad{grid-area:movement;gap:3px}
+#movement-stick{
+  grid-area:movement;
+  position:relative;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  width:clamp(76px,13vw,104px);
+  height:56px;
+  padding-inline:6px;
+  border:2px solid #755995;
+  border-radius:28px;
+  background:#1b1429;
+  color:#b6a6d1;
+  font-size:.7rem;
+  touch-action:none;
+}
+#movement-stick span{pointer-events:none}
+.stick-thumb{
+  position:absolute;
+  inset:50% auto auto 50%;
+  width:32px;
+  height:32px;
+  transform:translate(calc(-50% + var(--stick-x, 0px)),-50%);
+  border:2px solid #a58dc1;
+  border-radius:50%;
+  background:radial-gradient(circle at 40% 34%,#8b70a9,#4b3665 70%);
+  transition:transform .12s ease-out;
+}
+#movement-stick.is-held .stick-thumb{
+  border-color:#fff4bb;
+  background:radial-gradient(circle at 40% 34%,#fff4bb,#dda74a 75%);
+  transition:none;
+}
 .touch-playing .action-pad{grid-area:actions;flex-direction:column;gap:4px}
 .touch-playing .touch-pad button{width:clamp(44px,7vw,60px);min-height:44px}
 .touch-playing header,.touch-playing footer{padding-block:3px}
@@ -82,7 +114,6 @@ kbd{font:inherit;color:#fff2be;border:1px solid #5d486f;padding:1px 4px;border-r
 .touch-playing #stage{font-size:.75rem}
 .touch-playing footer{flex-wrap:nowrap}
 @media (orientation:portrait) and (max-width:420px){
-  .touch-playing .movement-pad button{width:44px}
   .touch-playing footer{font-size:.7rem}
 }
 .touch-enabled footer{padding-block:6px;gap:4px;font-size:.75rem}

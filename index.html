@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#0e0b1a"><meta name="apple-mobile-web-app-capable" content="yes"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon-192.png"><title>Supers / Midnight Siege</title><link rel="stylesheet" href="style.css?v=touch-4"><script src="game.js?v=touch-4" defer></script></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#0e0b1a"><meta name="apple-mobile-web-app-capable" content="yes"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon-192.png"><title>Supers / Midnight Siege</title><link rel="stylesheet" href="style.css?v=touch-5"><script src="game.js?v=touch-5" defer></script></head>
 <body><main>
 <header><div class="brand">SUPERS<span> / MIDNIGHT SIEGE</span></div><div id="stage">HERO SELECT</div><div class="display-controls">
   <button type="button" id="touch-toggle" aria-pressed="false">TOUCH CONTROLS</button>
@@ -13,9 +13,10 @@
 </div>
 </div>
 <div id="touch-controls" role="group" aria-label="Touch controls" hidden>
-  <div class="touch-pad movement-pad" role="group" aria-label="Movement">
-    <button type="button" data-key="KeyA" aria-label="Move left">◀</button>
-    <button type="button" data-key="KeyD" aria-label="Move right">▶</button>
+  <div id="movement-stick" role="group" aria-label="Movement joystick. Drag left or right.">
+    <span aria-hidden="true">◀</span>
+    <span aria-hidden="true">▶</span>
+    <span class="stick-thumb" aria-hidden="true"></span>
   </div>
   <div class="touch-pad action-pad" role="group" aria-label="Jump and abilities">
     <button type="button" data-key="KeyJ">J</button>
